@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BBD Software — Careers</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDLPAktzLmpfNX9XUmw9i_B2P2I3XPwOLs",
+    authDomain: "viccybank.firebaseapp.com",
+    databaseURL: "https://viccybank-default-rtdb.firebaseio.com",
+    projectId: "viccybank",
+    storageBucket: "viccybank.firebasestorage.app",
+    messagingSenderId: "328465601734",
+    appId: "1:328465601734:web:ae8d6bee3683be60629b32"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window._db = db;
+  window._dbRef = ref;
+  window._dbPush = push;
+  window._dbSet = set;
+  window._dbOnValue = onValue;
+  window._dbUpdate = update;
+
+  onValue(ref(db, "bbd_applications"), (snap) => {
+    const data = snap.val();
+    window._applications = data
+      ? Object.entries(data).map(([id,v]) => ({...v, _id: id}))
+      : [];
+    if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+    if (document.getElementById('page-admin').classList.contains('active')) renderAdmin();
+  });
+</script>
+
+<style>
+:root {
+  --ink: #08080E;
+  --deep: #0D0D16;
+  --paper: #F5ECD7;
+  --paper2: #EDE0C4;
+  --red: #C0392B;
+  --red2: #E74C3C;
+  --gold: #D4A017;
+  --gold2: #F0C040;
+  --white: #FFFFFF;
+  --muted: rgba(245,236,215,0.42);
+  --border: rgba(245,236,215,0.08);
+  --success: #27AE60;
+  --warn: #E67E22;
+  --danger: #C0392B;
+  --glow-red: rgba(192,57,43,0.45);
+  --glow-gold: rgba(212,160,23,0.35);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  font-family:'Rajdhani',sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* CANVAS */
+#book-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* GRAIN */
+.grain {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: 0.6;
+}
+
+/* SCANLINES */
+.scanlines {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 4px);
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 56px;
+  background: rgba(8,8,14,0.88);
+  backdrop-filter: blur(22px);
+  border-bottom: 1px solid var(--border);
+}
+nav::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent 0%, var(--red) 30%, var(--gold) 55%, var(--red) 80%, transparent 100%);
+  opacity:0.55;
+}
+.logo {
+  font-family:'Orbitron',monospace; font-weight:900; font-size:20px;
+  letter-spacing:5px; color:var(--paper);
+  display:flex; align-items:center; gap:14px; cursor:pointer;
+}
+.logo-mark {
+  width:42px; height:42px;
+  border:2px solid var(--red);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; color:var(--red);
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  background:rgba(192,57,43,0.07);
+  transition:all 0.3s;
+}
+.logo:hover .logo-mark { background:var(--red); color:#fff; box-shadow:0 0 28px var(--glow-red); }
+.nav-links { display:flex; gap:0; list-style:none; }
+.nav-links li a {
+  font-family:'Rajdhani',sans-serif; font-weight:600;
+  font-size:12px; letter-spacing:3px; text-transform:uppercase;
+  text-decoration:none; color:var(--muted);
+  padding:8px 20px; transition:all 0.2s; position:relative;
+}
+.nav-links li a::after {
+  content:''; position:absolute; bottom:0; left:50%; right:50%;
+  height:1px; background:var(--red); transition:all 0.3s;
+}
+.nav-links li a:hover, .nav-links li a.active { color:var(--paper); }
+.nav-links li a:hover::after, .nav-links li a.active::after { left:18%; right:18%; }
+.nav-cta {
+  font-family:'Orbitron',monospace; font-size:10px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase;
+  color:#fff; background:var(--red); border:none;
+  padding:11px 28px;
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+  cursor:pointer; transition:all 0.25s;
+}
+.nav-cta:hover { background:var(--red2); box-shadow:0 0 32px var(--glow-red); transform:translateY(-1px); }
+
+/* ── PAGES ── */
+.page { display:none; position:relative; z-index:10; }
+.page.active { display:block; animation:pgIn 0.5s cubic-bezier(0.16,1,0.3,1); }
+@keyframes pgIn {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── HERO ── */
+.hero {
+  min-height:100vh;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:140px 56px 80px;
+  position:relative;
+}
+.hero-eyebrow {
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px; letter-spacing:5px;
+  color:var(--red); margin-bottom:22px;
+  display:flex; align-items:center; gap:14px;
+}
+.hero-eyebrow::before { content:''; width:40px; height:1px; background:var(--red); }
+.hero h1 {
+  font-family:'Orbitron',monospace; font-weight:900;
+  font-size:clamp(50px,9vw,118px);
+  line-height:0.92; letter-spacing:-3px;
+  margin-bottom:34px; max-width:860px;
+}
+.hero h1 .l1 { color:var(--paper); display:block; }
+.hero h1 .l2 {
+  display:block;
+  -webkit-text-stroke:1.5px var(--red); color:transparent;
+  position:relative;
+}
+.hero h1 .l2::after {
+  content:attr(data-t); position:absolute; left:0; top:0;
+  color:var(--red);
+  clip-path:inset(0 100% 0 0);
+  animation:txtReveal 2.2s 0.4s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes txtReveal { to { clip-path:inset(0 0% 0 0); } }
+.hero-sub {
+  font-size:17px; line-height:1.75;
+  color:var(--muted);
+  max-width:480px; margin-bottom:50px;
+  font-weight:400; letter-spacing:0.3px;
+}
+.hero-btns { display:flex; gap:16px; flex-wrap:wrap; }
+
+.btn-primary {
+  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase;
+  color:#fff; background:var(--red); border:none;
+  padding:16px 42px;
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+  cursor:pointer; transition:all 0.25s;
+}
+.btn-primary:hover { background:var(--red2); box-shadow:0 0 44px var(--glow-red); transform:translateY(-2px); }
+.btn-ghost {
+  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase;
+  color:var(--paper); background:transparent;
+  border:1px solid var(--border); padding:15px 42px;
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+  cursor:pointer; transition:all 0.25s;
+}
+.btn-ghost:hover { border-color:rgba(245,236,215,0.3); background:rgba(245,236,215,0.04); }
+
+.hero-stats {
+  display:flex; gap:0;
+  margin-top:80px;
+  border-top:1px solid var(--border);
+  padding-top:40px;
+}
+.h-stat { flex:1; padding-right:40px; border-right:1px solid var(--border); margin-right:40px; }
+.h-stat:last-child { border:none; margin:0; }
+.s-num {
+  font-family:'Orbitron',monospace; font-size:44px; font-weight:900;
+  color:var(--paper); letter-spacing:-1px; line-height:1; margin-bottom:7px;
+}
+.s-lbl { font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); }
+
+.c-deco {
+  position:absolute; width:56px; height:56px; pointer-events:none;
+}
+.c-deco.tl { top:110px; left:28px; border-top:1px solid rgba(192,57,43,0.6); border-left:1px solid rgba(192,57,43,0.6); }
+.c-deco.tr { top:110px; right:28px; border-top:1px solid rgba(192,57,43,0.6); border-right:1px solid rgba(192,57,43,0.6); }
+.c-deco.bl { bottom:28px; left:28px; border-bottom:1px solid rgba(192,57,43,0.6); border-left:1px solid rgba(192,57,43,0.6); }
+.c-deco.br { bottom:28px; right:28px; border-bottom:1px solid rgba(192,57,43,0.6); border-right:1px solid rgba(192,57,43,0.6); }
+
+/* ── JOBS ── */
+.pg-wrap { padding:110px 56px 80px; }
+.pg-head {
+  display:flex; align-items:flex-end; justify-content:space-between;
+  margin-bottom:48px; flex-wrap:wrap; gap:20px;
+}
+.sec-title {
+  font-family:'Orbitron',monospace; font-weight:900;
+  font-size:38px; letter-spacing:-1px; line-height:1;
+}
+.sec-title span { -webkit-text-stroke:1px var(--red); color:transparent; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; }
+.flt-btn {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  letter-spacing:2.5px; text-transform:uppercase;
+  color:var(--muted); background:transparent;
+  border:1px solid var(--border); padding:8px 18px; cursor:pointer;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  transition:all 0.2s;
+}
+.flt-btn:hover, .flt-btn.active {
+  color:var(--paper); border-color:var(--red);
+  background:rgba(192,57,43,0.1); box-shadow:0 0 18px rgba(192,57,43,0.12);
+}
+
+.jobs-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(350px,1fr));
+  gap:2px;
+}
+.job-card {
+  background:rgba(245,236,215,0.018);
+  border:1px solid var(--border);
+  padding:32px; cursor:pointer;
+  transition:all 0.3s; position:relative; overflow:hidden;
+}
+.job-card::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(to bottom,var(--red),var(--gold));
+  transform:scaleY(0); transform-origin:top; transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.job-card:hover { background:rgba(245,236,215,0.04); border-color:rgba(245,236,215,0.14); transform:translateX(5px); }
+.job-card:hover::before { transform:scaleY(1); }
+.jd { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--red); margin-bottom:14px; }
+.jt { font-family:'Orbitron',monospace; font-weight:700; font-size:18px; letter-spacing:-0.5px; margin-bottom:16px; line-height:1.2; }
+.jtags { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+.jtag { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--muted); border:1px solid var(--border); padding:3px 10px; }
+.jfoot { display:flex; align-items:center; justify-content:space-between; }
+.jsal { font-family:'Orbitron',monospace; font-size:13px; font-weight:700; color:var(--gold); letter-spacing:0.5px; }
+.japply-btn {
+  font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px;
+  text-transform:uppercase; color:var(--red);
+  background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.3);
+  padding:8px 18px; cursor:pointer;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  transition:all 0.2s;
+}
+.japply-btn:hover { background:var(--red); color:#fff; box-shadow:0 0 22px var(--glow-red); }
+
+/* ── FORM ── */
+.form-wrap { max-width:800px; margin:0 auto; padding:120px 40px 80px; }
+.back-btn {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  letter-spacing:2.5px; text-transform:uppercase;
+  color:var(--muted); background:none; border:none; cursor:pointer;
+  margin-bottom:36px; display:flex; align-items:center; gap:10px;
+  transition:color 0.2s;
+}
+.back-btn:hover { color:var(--paper); }
+.form-title { font-family:'Orbitron',monospace; font-weight:900; font-size:34px; letter-spacing:-1px; margin-bottom:8px; }
+.form-title .hi { color:var(--red); }
+.form-sub { font-size:15px; color:var(--muted); margin-bottom:48px; letter-spacing:0.3px; }
+.f-sec-lbl {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  letter-spacing:4px; text-transform:uppercase; color:var(--red);
+  margin-bottom:20px; display:flex; align-items:center; gap:14px;
+}
+.f-sec-lbl::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(192,57,43,0.4),transparent); }
+.f-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.f-grp { margin-bottom:16px; }
+label { display:block; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+input, textarea, select {
+  width:100%;
+  background:rgba(245,236,215,0.025);
+  border:1px solid var(--border);
+  border-bottom:1px solid rgba(245,236,215,0.18);
+  color:var(--paper); font-family:'Rajdhani',sans-serif;
+  font-size:16px; font-weight:500;
+  padding:14px 16px; outline:none; transition:all 0.25s; -webkit-appearance:none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color:var(--red); border-bottom-color:var(--red);
+  background:rgba(192,57,43,0.04); box-shadow:0 4px 22px rgba(192,57,43,0.07);
+}
+input::placeholder, textarea::placeholder { color:rgba(245,236,215,0.18); }
+textarea { resize:vertical; min-height:120px; }
+select option { background:var(--ink); }
+.divider { border:none; border-top:1px solid var(--border); margin:32px 0; }
+
+.upload-zone {
+  border:1px dashed rgba(245,236,215,0.18);
+  padding:44px; text-align:center; cursor:pointer;
+  transition:all 0.3s; position:relative; overflow:hidden;
+}
+.upload-zone:hover { border-color:var(--red); box-shadow:0 0 36px rgba(192,57,43,0.1); }
+.upload-zone.uploading { border-color:var(--gold); box-shadow:0 0 36px rgba(212,160,23,0.18); }
+.upload-zone.uploaded  { border-color:var(--success); box-shadow:0 0 36px rgba(39,174,96,0.14); }
+.up-icon { font-size:40px; margin-bottom:14px; }
+.up-title { font-family:'Orbitron',monospace; font-size:14px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+.up-sub { font-size:13px; color:var(--muted); letter-spacing:0.5px; }
+.up-bar { margin-top:16px; height:2px; background:rgba(245,236,215,0.07); display:none; }
+.up-fill { height:100%; background:linear-gradient(90deg,var(--red),var(--gold)); width:0%; transition:width 0.3s; }
+.f-submit-row { display:flex; align-items:center; justify-content:space-between; margin-top:40px; gap:20px; flex-wrap:wrap; }
+.f-notice { font-size:13px; color:var(--muted); max-width:340px; line-height:1.6; letter-spacing:0.2px; }
+
+/* ── DASHBOARD ── */
+.dash-wrap { padding:110px 56px 80px; }
+.dash-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:52px; flex-wrap:wrap; gap:20px; }
+.dash-title { font-family:'Orbitron',monospace; font-weight:900; font-size:36px; letter-spacing:-1px; margin-bottom:6px; }
+.dash-sub { font-size:15px; color:var(--muted); letter-spacing:0.3px; }
+
+.app-card {
+  border:1px solid var(--border);
+  background:rgba(245,236,215,0.012);
+  margin-bottom:2px; padding:36px;
+  position:relative; overflow:hidden; transition:all 0.3s;
+}
+.app-card:hover { background:rgba(245,236,215,0.025); border-color:rgba(245,236,215,0.12); }
+.app-glow { position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--red),var(--gold),transparent); opacity:0.5; }
+.app-top-row { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:30px; flex-wrap:wrap; gap:16px; }
+.app-role { font-family:'Orbitron',monospace; font-weight:700; font-size:22px; letter-spacing:-0.5px; margin-bottom:6px; }
+.app-meta { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--muted); letter-spacing:1.5px; }
+
+/* STATUS TRACK */
+.status-track { position:relative; display:flex; align-items:flex-start; margin-bottom:28px; }
+.t-line { position:absolute; top:16px; left:16px; right:16px; height:1px; background:var(--border); }
+.t-fill { position:absolute; top:16px; left:16px; height:1px; background:linear-gradient(90deg,var(--red),var(--gold)); box-shadow:0 0 14px var(--glow-red); transition:width 1.1s cubic-bezier(0.4,0,0.2,1); }
+.t-step { flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; position:relative; z-index:1; }
+.t-node {
+  width:32px; height:32px;
+  border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  background:var(--ink); transition:all 0.4s;
+  clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
+}
+.t-node.done { background:linear-gradient(135deg,var(--red),var(--gold)); border-color:transparent; color:#fff; box-shadow:0 0 22px var(--glow-red); }
+.t-node.cur { border-color:var(--red); color:var(--red); animation:ndPulse 2s infinite; }
+@keyframes ndPulse { 0%,100%{box-shadow:0 0 16px rgba(192,57,43,0.3);} 50%{box-shadow:0 0 30px rgba(192,57,43,0.65);} }
+.t-lbl { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); text-align:center; }
+.t-lbl.on { color:var(--paper); }
+
+.s-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  letter-spacing:2px; text-transform:uppercase;
+  padding:8px 18px;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+}
+.b-recv { background:rgba(230,126,34,0.1); border:1px solid rgba(230,126,34,0.3); color:var(--warn); }
+.b-rev  { background:rgba(212,160,23,0.1); border:1px solid rgba(212,160,23,0.3); color:var(--gold2); }
+.b-hire { background:rgba(39,174,96,0.1); border:1px solid rgba(39,174,96,0.3); color:var(--success); }
+.b-rej  { background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.25); color:var(--danger); }
+.b-dot { width:5px; height:5px; border-radius:50%; background:currentColor; animation:bdBlink 1.5s infinite; }
+@keyframes bdBlink { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+
+.app-note { background:rgba(245,236,215,0.02); border-left:2px solid var(--red); padding:16px 20px; font-size:14px; line-height:1.75; color:var(--muted); letter-spacing:0.3px; margin-top:4px; }
+
+.empty-state { text-align:center; padding:100px 40px; }
+.e-glyph { font-family:'Orbitron',monospace; font-size:80px; font-weight:900; color:rgba(245,236,215,0.04); margin-bottom:24px; letter-spacing:-4px; }
+.e-title { font-family:'Orbitron',monospace; font-size:22px; font-weight:700; letter-spacing:-0.5px; margin-bottom:12px; }
+.e-sub { font-size:15px; color:var(--muted); max-width:340px; margin:0 auto 32px; line-height:1.6; }
+
+/* ── ADMIN ── */
+.admin-wrap { padding:110px 56px 80px; }
+.a-title { font-family:'Orbitron',monospace; font-weight:900; font-size:36px; letter-spacing:-1px; margin-bottom:6px; }
+.a-sub { font-size:15px; color:var(--muted); letter-spacing:0.3px; margin-bottom:48px; }
+.a-table { width:100%; border-collapse:collapse; border:1px solid var(--border); }
+.a-table thead tr { background:rgba(245,236,215,0.025); border-bottom:1px solid rgba(192,57,43,0.2); }
+.a-table th { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); padding:14px 20px; text-align:left; }
+.a-table td { padding:18px 20px; font-size:14px; border-bottom:1px solid rgba(245,236,215,0.03); vertical-align:middle; }
+.a-table tr:hover td { background:rgba(245,236,215,0.018); }
+.s-sel { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; background:rgba(245,236,215,0.04); border:1px solid var(--border); color:var(--paper); padding:8px 12px; cursor:pointer; outline:none; transition:all 0.2s; }
+.s-sel:focus { border-color:var(--red); box-shadow:0 0 18px rgba(192,57,43,0.15); }
+.cv-lnk { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--gold); text-decoration:none; border-bottom:1px solid rgba(212,160,23,0.3); transition:all 0.2s; }
+.cv-lnk:hover { color:var(--gold2); }
+
+/* ── MODAL ── */
+.modal-veil { display:none; position:fixed; inset:0; background:rgba(8,8,14,0.92); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(14px); }
+.modal-veil.show { display:flex; }
+.modal-box {
+  background:var(--ink); border:1px solid rgba(192,57,43,0.4);
+  padding:56px 48px; max-width:440px; width:90%; text-align:center;
+  clip-path:polygon(16px 0%,100% 0%,calc(100% - 16px) 100%,0% 100%);
+  animation:mIn 0.4s cubic-bezier(0.16,1,0.3,1);
+  position:relative; box-shadow:0 0 80px rgba(192,57,43,0.2);
+}
+.modal-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--red),var(--gold),transparent); }
+@keyframes mIn { from{opacity:0;transform:scale(0.88) translateY(20px);} to{opacity:1;transform:scale(1) translateY(0);} }
+.m-glyph { font-family:'Orbitron',monospace; font-size:52px; font-weight:900; color:var(--red); margin-bottom:20px; text-shadow:0 0 32px var(--glow-red); }
+.m-title { font-family:'Orbitron',monospace; font-weight:700; font-size:22px; letter-spacing:-0.5px; margin-bottom:14px; }
+.m-text { font-size:15px; color:var(--muted); line-height:1.7; margin-bottom:36px; letter-spacing:0.3px; }
+
+/* ── LOADER ── */
+.loader { display:none; position:fixed; inset:0; background:var(--ink); z-index:500; align-items:center; justify-content:center; flex-direction:column; gap:22px; }
+.loader.show { display:flex; }
+.ld-txt { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--red); animation:ldBlink 0.9s infinite; }
+@keyframes ldBlink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+.ld-bar { width:200px; height:1px; background:var(--border); }
+.ld-fill { height:100%; background:linear-gradient(90deg,var(--red),var(--gold)); animation:ldFill 1.4s ease-in-out infinite alternate; }
+@keyframes ldFill { from{width:15%;} to{width:90%;} }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:32px; right:32px; z-index:400; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1.5px; padding:14px 24px; border:1px solid var(--red); background:var(--ink); color:var(--paper); clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); display:none; }
+.toast.show { display:block; animation:tIn 0.3s ease; }
+@keyframes tIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  nav{padding:14px 20px;}
+  .nav-links{display:none;}
+  .hero,.pg-wrap,.form-wrap,.dash-wrap,.admin-wrap{padding-left:20px;padding-right:20px;}
+  .hero h1{font-size:46px;}
+  .f-row{grid-template-columns:1fr;}
+  .jobs-grid{grid-template-columns:1fr;}
+  .hero-stats{flex-direction:column;gap:24px;}
+  .h-stat{border-right:none;border-bottom:1px solid var(--border);padding:0 0 24px;margin:0;}
+  .h-stat:last-child{border:none;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="book-canvas"></canvas>
+<div class="grain"></div>
+<div class="scanlines"></div>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="ld-txt">INITIALIZING BBD SYSTEM</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="showPage('home')">
+    <div class="logo-mark">B</div>BBD
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" id="nav-home"      class="active" onclick="showPage('home');return false">Home</a></li>
+    <li><a href="#" id="nav-jobs"      onclick="showPage('jobs');return false">Careers</a></li>
+    <li><a href="#" id="nav-dashboard" onclick="showPage('dashboard');return false">Dashboard</a></li>
+    <li><a href="#" id="nav-admin"     onclick="showPage('admin');return false">Admin</a></li>
+  </ul>
+  <button class="nav-cta" onclick="showPage('jobs')">Open Roles</button>
+</nav>
+
+<!-- HOME -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="c-deco tl"></div><div class="c-deco tr"></div>
+    <div class="c-deco bl"></div><div class="c-deco br"></div>
+    <div class="hero-eyebrow">NOW HIRING ACROSS 12 DIVISIONS</div>
+    <h1>
+      <span class="l1">BUILD</span>
+      <span class="l2" data-t="THE FUTURE">THE FUTURE</span>
+    </h1>
+    <p class="hero-sub">Join BBD Software — delivering world-class enterprise solutions across Africa and beyond. Apply in minutes. Track your journey live.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="showPage('jobs')">Browse Roles →</button>
+      <button class="btn-ghost"   onclick="showPage('dashboard')">Track Application</button>
+    </div>
+    <div class="hero-stats">
+      <div class="h-stat"><div class="s-num">500+</div><div class="s-lbl">Engineers worldwide</div></div>
+      <div class="h-stat"><div class="s-num">12</div><div class="s-lbl">Open positions</div></div>
+      <div class="h-stat"><div class="s-num">30yr</div><div class="s-lbl">Industry excellence</div></div>
+      <div class="h-stat"><div class="s-num">4.8★</div><div class="s-lbl">Employee rating</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div id="page-jobs" class="page">
+  <div class="pg-wrap">
+    <div class="pg-head">
+      <div class="sec-title">OPEN <span>ROLES</span></div>
+      <div class="filter-row">
+        <button class="flt-btn active" onclick="filterJobs('all',this)">All</button>
+        <button class="flt-btn" onclick="filterJobs('Engineering',this)">Engineering</button>
+        <button class="flt-btn" onclick="filterJobs('Design',this)">Design</button>
+        <button class="flt-btn" onclick="filterJobs('Product',this)">Product</button>
+        <button class="flt-btn" onclick="filterJobs('Finance',this)">Finance</button>
+      </div>
+    </div>
+    <div class="jobs-grid" id="jobs-grid"></div>
+  </div>
+</div>
+
+<!-- APPLY -->
+<div id="page-apply" class="page">
+  <div class="form-wrap">
+    <button class="back-btn" onclick="showPage('jobs')">← BACK TO ROLES</button>
+    <div class="form-title">APPLY — <span class="hi" id="apply-role-display">ROLE</span></div>
+    <div class="form-sub">Your application goes directly to our hiring team and is tracked globally in real time.</div>
+
+    <div class="f-sec-lbl">Personal Information</div>
+    <div class="f-row">
+      <div class="f-grp"><label>First Name *</label><input type="text" id="f_fname" placeholder="Amara"/></div>
+      <div class="f-grp"><label>Last Name *</label><input type="text" id="f_lname" placeholder="Dlamini"/></div>
+    </div>
+    <div class="f-row">
+      <div class="f-grp"><label>Email *</label><input type="email" id="f_email" placeholder="you@example.com"/></div>
+      <div class="f-grp"><label>Phone</label><input type="tel" id="f_phone" placeholder="+27 71 000 0000"/></div>
+    </div>
+    <div class="f-grp"><label>Location</label><input type="text" id="f_location" placeholder="Johannesburg, South Africa"/></div>
+
+    <hr class="divider"/>
+    <div class="f-sec-lbl">Professional Background</div>
+    <div class="f-row">
+      <div class="f-grp">
+        <label>Experience</label>
+        <select id="f_exp">
+          <option value="">Select</option>
+          <option>Less than 1 year</option>
+          <option>1–2 years</option>
+          <option>3–5 years</option>
+          <option>6–10 years</option>
+          <option>10+ years</option>
+        </select>
+      </div>
+      <div class="f-grp"><label>Start Date</label><input type="date" id="f_start"/></div>
+    </div>
+    <div class="f-grp"><label>LinkedIn</label><input type="url" id="f_linkedin" placeholder="https://linkedin.com/in/you"/></div>
+    <div class="f-grp"><label>Cover Letter</label><textarea id="f_cover" placeholder="Why BBD Software? What drives you?"></textarea></div>
+
+    <hr class="divider"/>
+    <div class="f-sec-lbl">CV / Résumé</div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('cv-file').click()">
+      <input type="file" id="cv-file" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFile(this)"/>
+      <div class="up-icon" id="up-icon">📄</div>
+      <div class="up-title" id="up-title">UPLOAD YOUR CV</div>
+      <div class="up-sub" id="up-sub">Click or drag · PDF, DOC, DOCX · Max 5MB</div>
+      <div class="up-bar" id="up-bar"><div class="up-fill" id="up-fill"></div></div>
+    </div>
+
+    <div class="f-submit-row">
+      <div class="f-notice">By submitting you agree to our privacy policy. Data is used solely for recruitment.</div>
+      <button class="btn-primary" onclick="submitApp()">SUBMIT APPLICATION →</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page">
+  <div class="dash-wrap">
+    <div class="dash-top">
+      <div>
+        <div class="dash-title">MY APPLICATIONS</div>
+        <div class="dash-sub">Track your status live — updated in real time by the hiring team.</div>
+      </div>
+      <button class="btn-primary" onclick="showPage('jobs')">Browse More Roles</button>
+    </div>
+    <div id="dash-apps"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="page-admin" class="page">
+  <div class="admin-wrap">
+    <div class="a-title">ADMIN PANEL</div>
+    <div class="a-sub">Review applicants and update their status — all changes sync globally in real time via Firebase.</div>
+    <table class="a-table">
+      <thead>
+        <tr>
+          <th>Applicant</th><th>Role</th><th>Applied</th>
+          <th>CV</th><th>Status</th><th>Update</th>
+        </tr>
+      </thead>
+      <tbody id="admin-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-veil" id="modal">
+  <div class="modal-box">
+    <div class="m-glyph">✓</div>
+    <div class="m-title">APPLICATION RECEIVED</div>
+    <div class="m-text">Your application has been transmitted globally to our hiring team. Track its live status on your dashboard.</div>
+    <button class="btn-primary" style="width:100%" onclick="closeModal()">TRACK MY STATUS →</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   BOOK CANVAS — animated, scroll-reactive
+═══════════════════════════════════ */
+(function(){
+  const cv = document.getElementById('book-canvas');
+  const cx = cv.getContext('2d');
+  let W, H, phase = 0, scrollPx = 0;
+  let currentOpen = 1, targetOpen = 1;
+
+  function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('scroll', () => { scrollPx = window.scrollY; });
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  /* Determine open amount from scroll + background color sense */
+  function getTarget(){
+    // oscillate gently with scroll
+    const osc = 0.5 + 0.5 * Math.sin(scrollPx * 0.004 + phase * 0.5);
+    // overall openness: hero = fully open; scrolled away = more closed
+    const global = Math.max(0.15, 1 - scrollPx / 2400);
+    return Math.max(0.08, osc * global);
+  }
+
+  function drawSingleBook(x, y, sz, open, alpha){
+    if(alpha <= 0) return;
+    const spW = sz * 0.035;
+    const pgH = sz * 0.75;
+    const maxAngle = Math.PI * 0.72 * open;
+    const nPages = 10;
+
+    cx.save();
+    cx.globalAlpha = alpha;
+    cx.translate(x, y);
+
+    /* Drop shadow */
+    const sh = cx.createRadialGradient(0, pgH*0.06, 0, 0, pgH*0.06, sz*0.55);
+    sh.addColorStop(0,'rgba(0,0,0,0.35)'); sh.addColorStop(1,'transparent');
+    cx.fillStyle = sh;
+    cx.beginPath(); cx.ellipse(0,pgH*0.06,sz*0.52,sz*0.1,0,0,Math.PI*2); cx.fill();
+
+    /* Pages — right side */
+    for(let i=nPages; i>=0; i--){
+      const t = i/nPages;
+      const ang = maxAngle * t * 0.75;
+      const pw = sz * 0.44;
+      cx.save(); cx.rotate(-ang * 0.28);
+
+      const isWhite = i % 2 === 0;
+      const brightness = isWhite ? 0.92 - i*0.055 : 0.82 - i*0.055;
+      cx.fillStyle = isWhite
+        ? `rgba(245,236,215,${brightness})`
+        : `rgba(214,202,178,${brightness})`;
+
+      const ctrl = pw * (0.55 + 0.45*Math.sin(ang));
+      cx.beginPath();
+      cx.moveTo(spW, -pgH/2);
+      cx.bezierCurveTo(
+        spW + ctrl*0.5, -pgH/2*0.75,
+        spW + pw*(0.94+open*0.06), 0,
+        spW + ctrl*0.5,  pgH/2*0.75
+      );
+      cx.lineTo(spW, pgH/2);
+      cx.closePath(); cx.fill();
+
+      cx.strokeStyle = `rgba(100,80,60,${0.08+i*0.018})`; cx.lineWidth=0.5; cx.stroke();
+
+      /* Lines on inner pages */
+      if(isWhite && open > 0.18){
+        cx.globalAlpha *= 0.35 * open;
+        cx.strokeStyle = 'rgba(160,140,110,0.7)'; cx.lineWidth=0.7;
+        for(let l=0;l<7;l++){
+          const ly = -pgH/2 + (pgH/8)*(l+1);
+          cx.beginPath(); cx.moveTo(spW+10, ly); cx.lineTo(spW+pw*0.72, ly); cx.stroke();
+        }
+        cx.globalAlpha = alpha;
+      }
+      cx.restore();
+    }
+
+    /* Pages — left side (mirror) */
+    for(let i=nPages; i>=0; i--){
+      const t = i/nPages;
+      const ang = maxAngle * t * 0.75;
+      const pw = sz * 0.44;
+      cx.save(); cx.scale(-1,1); cx.rotate(-ang*0.28);
+
+      const isWhite = i%2===0;
+      const brightness = isWhite ? 0.92-i*0.055 : 0.82-i*0.055;
+      cx.fillStyle = isWhite
+        ? `rgba(245,236,215,${brightness})`
+        : `rgba(214,202,178,${brightness})`;
+
+      const ctrl = pw*(0.55+0.45*Math.sin(ang));
+      cx.beginPath();
+      cx.moveTo(spW,-pgH/2);
+      cx.bezierCurveTo(spW+ctrl*0.5,-pgH/2*0.75,spW+pw*(0.94+open*0.06),0,spW+ctrl*0.5,pgH/2*0.75);
+      cx.lineTo(spW,pgH/2); cx.closePath(); cx.fill();
+      cx.strokeStyle=`rgba(100,80,60,${0.08+i*0.018})`; cx.lineWidth=0.5; cx.stroke();
+      cx.restore();
+    }
+
+    /* Spine */
+    const spG = cx.createLinearGradient(-spW,0,spW,0);
+    spG.addColorStop(0,'#130404'); spG.addColorStop(0.35,'#200808');
+    spG.addColorStop(0.65,'#2e0e0e'); spG.addColorStop(1,'#130404');
+    cx.fillStyle = spG;
+    cx.fillRect(-spW,-pgH/2,spW*2,pgH);
+
+    /* Spine red accent */
+    cx.strokeStyle='rgba(192,57,43,0.55)'; cx.lineWidth=0.7;
+    cx.strokeRect(-spW+1,-pgH/2+10,spW*2-2,pgH-20);
+
+    /* Gold rivets */
+    for(let d=0;d<3;d++){
+      const dy = -pgH/2 + pgH*(0.25+d*0.25);
+      cx.fillStyle='rgba(212,160,23,0.55)';
+      cx.beginPath(); cx.arc(0,dy,1.8,0,Math.PI*2); cx.fill();
+    }
+
+    cx.restore();
+  }
+
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    phase += 0.003;
+    targetOpen = getTarget();
+    currentOpen = lerp(currentOpen, targetOpen, 0.035);
+
+    const sz = Math.min(W,H) * 0.52;
+    const bob = Math.sin(phase*1.8) * 6;
+
+    /* Main book */
+    drawSingleBook(W/2, H/2 + bob, sz, currentOpen, 1);
+
+    /* Ghost books — ambient atmosphere */
+    drawSingleBook(W*0.1,  H*0.28, sz*0.28, (currentOpen+0.35)%1, 0.1);
+    drawSingleBook(W*0.9,  H*0.72, sz*0.22, (currentOpen+0.6)%1,  0.08);
+    drawSingleBook(W*0.85, H*0.18, sz*0.18, (currentOpen+0.2)%1,  0.06);
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════════
+   DATA
+═══════════════════════════════════ */
+const JOBS = [
+  {id:1,dept:'Engineering',title:'Senior Full-Stack Engineer',tags:['Remote','Full-time','React · Node.js'],salary:'R65k–R90k/mo'},
+  {id:2,dept:'Design',title:'Product Designer (UX/UI)',tags:['Hybrid','Full-time','Figma · Design Systems'],salary:'R50k–R70k/mo'},
+  {id:3,dept:'Engineering',title:'DevOps / Cloud Engineer',tags:['On-site','Full-time','AWS · Kubernetes'],salary:'R70k–R95k/mo'},
+  {id:4,dept:'Product',title:'Product Manager – Fintech',tags:['Remote','Full-time','Agile · Roadmapping'],salary:'R75k–R100k/mo'},
+  {id:5,dept:'Finance',title:'Financial Analyst',tags:['Hybrid','Full-time','Excel · SAP'],salary:'R45k–R60k/mo'},
+  {id:6,dept:'Engineering',title:'QA Automation Engineer',tags:['Remote','Contract','Cypress · Selenium'],salary:'R40k–R55k/mo'},
+];
+
+let currentFilter='all', selectedJob=null, uploadedCV='';
+window._applications = [];
+
+/* ═══════════════════════════════════
+   PAGE NAV
+═══════════════════════════════════ */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  const el = document.getElementById('nav-'+id);
+  if(el) el.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='dashboard') renderDashboard();
+  if(id==='admin') renderAdmin();
+}
+
+/* ═══════════════════════════════════
+   JOBS
+═══════════════════════════════════ */
+function renderJobs(){
+  const grid = document.getElementById('jobs-grid');
+  const list = currentFilter==='all' ? JOBS : JOBS.filter(j=>j.dept===currentFilter);
+  grid.innerHTML = list.map(j=>`
+    <div class="job-card">
+      <div class="jd">${j.dept}</div>
+      <div class="jt">${j.title}</div>
+      <div class="jtags">${j.tags.map(t=>`<span class="jtag">${t}</span>`).join('')}</div>
+      <div class="jfoot">
+        <div class="jsal">${j.salary}</div>
+        <button class="japply-btn" onclick="openApply(${j.id})">Apply Now</button>
+      </div>
+    </div>`).join('');
+}
+function filterJobs(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.flt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderJobs();
+}
+function openApply(id){
+  selectedJob=JOBS.find(j=>j.id===id);
+  document.getElementById('apply-role-display').textContent=selectedJob.title;
+  uploadedCV='';
+  resetUpload();
+  showPage('apply');
+}
+renderJobs();
+
+/* ═══════════════════════════════════
+   CLOUDINARY UPLOAD
+═══════════════════════════════════ */
+const CLOUD = 'dbgxllxdb';
+const PRESET = 'efootball_screenshots';
+
+function handleFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 5*1024*1024){ showToast('File too large — max 5MB'); return; }
+  const zone=document.getElementById('upload-zone'),
+        icon=document.getElementById('up-icon'),
+        title=document.getElementById('up-title'),
+        sub=document.getElementById('up-sub'),
+        bar=document.getElementById('up-bar'),
+        fill=document.getElementById('up-fill');
+
+  zone.classList.add('uploading');
+  icon.textContent='⬆'; title.textContent='UPLOADING...'; sub.textContent=file.name;
+  bar.style.display='block'; fill.style.width='0%';
+
+  const fd = new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset',PRESET);
+  fd.append('resource_type','raw');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST',`https://api.cloudinary.com/v1_1/${CLOUD}/raw/upload`);
+  xhr.upload.onprogress = e => {
+    if(e.lengthComputable) fill.style.width = Math.round(e.loaded/e.total*100)+'%';
+  };
+  xhr.onload = () => {
+    if(xhr.status===200){
+      const r = JSON.parse(xhr.responseText);
+      uploadedCV = r.secure_url;
+      zone.classList.remove('uploading'); zone.classList.add('uploaded');
+      icon.textContent='✓'; title.textContent='CV UPLOADED'; sub.textContent=file.name+' — ready';
+      fill.style.width='100%';
+      showToast('CV uploaded successfully');
+    } else {
+      zone.classList.remove('uploading');
+      icon.textContent='✗'; title.textContent='UPLOAD FAILED'; sub.textContent='Try again';
+      showToast('Upload failed — please retry');
+    }
+  };
+  xhr.onerror = () => { zone.classList.remove('uploading'); icon.textContent='✗'; title.textContent='NETWORK ERROR'; };
+  xhr.send(fd);
+}
+
+function resetUpload(){
+  const zone=document.getElementById('upload-zone');
+  zone.classList.remove('uploading','uploaded');
+  document.getElementById('up-icon').textContent='📄';
+  document.getElementById('up-title').textContent='UPLOAD YOUR CV';
+  document.getElementById('up-sub').textContent='Click or drag · PDF, DOC, DOCX · Max 5MB';
+  document.getElementById('up-bar').style.display='none';
+  document.getElementById('up-fill').style.width='0%';
+  document.getElementById('cv-file').value='';
+}
+
+/* ═══════════════════════════════════
+   FIREBASE SUBMIT
+═══════════════════════════════════ */
+async function submitApp(){
+  const get = id => document.getElementById(id).value.trim();
+  const fname=get('f_fname'), lname=get('f_lname'), email=get('f_email');
+  if(!fname||!lname||!email){ showToast('Please fill in name and email'); return; }
+  if(!window._db){ showToast('System initializing — please wait'); return; }
+
+  const entry = {
+    name:`${fname} ${lname}`, email, phone:get('f_phone'),
+    location:get('f_location'), experience:get('f_exp'),
+    startDate:get('f_start'), linkedin:get('f_linkedin'),
+    cover:get('f_cover'), cvUrl:uploadedCV||'',
+    role:selectedJob.title, dept:selectedJob.dept,
+    status:'received',
+    appliedAt:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}),
+    timestamp:Date.now()
+  };
+
+  showLoader(true);
+  try {
+    const r = window._dbPush(window._dbRef(window._db,'bbd_applications'));
+    await window._dbSet(r, entry);
+    showLoader(false);
+    document.getElementById('modal').classList.add('show');
+  } catch(e){
+    showLoader(false);
+    showToast('Submission failed — check connection');
+    console.error(e);
+  }
+}
+
+/* ═══════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════ */
+const STEPS=[{key:'received',lbl:'RECEIVED'},{key:'review',lbl:'REVIEW'},{key:'hired',lbl:'HIRED'}];
+
+function stepIdx(s){ return STEPS.findIndex(x=>x.key===s); }
+
+function badge(s){
+  const m={
+    received:`<span class="s-badge b-recv"><span class="b-dot"></span>RECEIVED</span>`,
+    review:`<span class="s-badge b-rev"><span class="b-dot"></span>UNDER REVIEW</span>`,
+    hired:`<span class="s-badge b-hire"><span class="b-dot"></span>HIRED ✓</span>`,
+    rejected:`<span class="s-badge b-rej"><span class="b-dot"></span>NOT SELECTED</span>`,
+  };
+  return m[s]||'';
+}
+
+function note(s){
+  return {
+    received:'📬 Application received. Our team will review it shortly and reach out if you are shortlisted.',
+    review:'🔍 Your application is currently being reviewed. We may contact you soon for an interview.',
+    hired:'🎊 Congratulations — you have been selected! Expect an official offer letter via email within 2–3 working days.',
+    rejected:'📋 Thank you for applying. After careful review we have moved forward with other candidates. We will keep your profile on file for future roles.',
+  }[s]||'';
+}
+
+function renderDashboard(){
+  const apps=window._applications||[];
+  const c=document.getElementById('dash-apps');
+  if(!apps.length){
+    c.innerHTML=`<div class="empty-state"><div class="e-glyph">BBD</div><div class="e-title">NO APPLICATIONS YET</div><div class="e-sub">You haven't applied to any positions. Browse our open roles to get started.</div><button class="btn-primary" onclick="showPage('jobs')">Browse Roles →</button></div>`;
+    return;
+  }
+  c.innerHTML=apps.sort((a,b)=>b.timestamp-a.timestamp).map(app=>{
+    const rej=app.status==='rejected';
+    const idx=stepIdx(app.status);
+    const pct=rej?0:idx===0?5:idx===1?52:100;
+    const nodes=STEPS.map((s,i)=>{
+      let cls=''; if(!rej){ if(i<idx)cls='done'; else if(i===idx)cls='cur'; }
+      return `<div class="t-step"><div class="t-node ${cls}">${i<idx?'✓':i+1}</div><div class="t-lbl ${i<=idx&&!rej?'on':''}">${s.lbl}</div></div>`;
+    }).join('');
+    return `<div class="app-card">
+      <div class="app-glow"></div>
+      <div class="app-top-row">
+        <div><div class="app-role">${app.role}</div><div class="app-meta">${app.dept} · ${app.appliedAt}</div></div>
+        ${badge(app.status)}
+      </div>
+      ${!rej?`<div class="status-track"><div class="t-line"></div><div class="t-fill" style="width:calc(${pct}% - 16px)"></div>${nodes}</div>`:''}
+      <div class="app-note">${note(app.status)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════
+   ADMIN
+═══════════════════════════════════ */
+function renderAdmin(){
+  const apps=window._applications||[];
+  const tb=document.getElementById('admin-tbody');
+  if(!apps.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:44px;font-family:\'Share Tech Mono\',monospace;font-size:11px;letter-spacing:2px;">NO APPLICATIONS ON FILE</td></tr>';
+    return;
+  }
+  tb.innerHTML=apps.sort((a,b)=>b.timestamp-a.timestamp).map(app=>`
+    <tr>
+      <td><div style="font-weight:600;font-size:15px">${app.name}</div><div style="font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px">${app.email}</div></td>
+      <td><div style="font-weight:600">${app.role}</div><div style="font-size:12px;color:var(--muted)">${app.dept}</div></td>
+      <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px">${app.appliedAt}</td>
+      <td>${app.cvUrl?`<a class="cv-lnk" href="${app.cvUrl}" target="_blank">VIEW CV ↗</a>`:`<span style="color:var(--muted);font-size:11px;font-family:'Share Tech Mono',monospace">— none</span>`}</td>
+      <td>${badge(app.status)}</td>
+      <td>
+        <select class="s-sel" onchange="updateStatus('${app._id}',this.value)">
+          <option value="received" ${app.status==='received'?'selected':''}>Received</option>
+          <option value="review"   ${app.status==='review'?'selected':''}>Under Review</option>
+          <option value="hired"    ${app.status==='hired'?'selected':''}>Hired ✓</option>
+          <option value="rejected" ${app.status==='rejected'?'selected':''}>Not Selected ✗</option>
+        </select>
+      </td>
+    </tr>`).join('');
+}
+
+async function updateStatus(id,status){
+  if(!window._db) return;
+  try {
+    await window._dbUpdate(window._dbRef(window._db,`bbd_applications/${id}`),{status});
+    showToast('Status updated — synced globally');
+  } catch(e){ showToast('Update failed'); }
+}
+
+/* ═══════════════════════════════════
+   UTILS
+═══════════════════════════════════ */
+function closeModal(){ document.getElementById('modal').classList.remove('show'); showPage('dashboard'); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200); }
+function showLoader(v){ document.getElementById('loader').classList.toggle('show',v); }
+
+setTimeout(()=>{ if(!window._db) showToast('Connecting to Firebase...'); }, 1800);
+</script>
+</body>
+</html>
